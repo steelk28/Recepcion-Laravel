@@ -14,16 +14,18 @@ return new class extends Migration
         Schema::create('outbounds', function (Blueprint $table) {
             $table->id();
             $table->integer("num_area");
-            $table->integer("consecutive");
+            $table->unsignedInteger("consecutive")->unique();
             $table->date("date");
             $table->string("addressee");
             $table->string("description");
             $table->string("area");
-
+            $table->string('status')->default('activo');
+            
             
             $table->timestamps();
         });
     }
+
 
 
 

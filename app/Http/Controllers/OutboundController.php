@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Outbound;
 use Illuminate\Http\Request;
 
@@ -12,23 +11,33 @@ class OutboundController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return response()->json(Outbound::all());
     }
 
     /**
      * Store a newly created resource in storage.
      */
+
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'num_area' => 'required|integer',
+            'date' => 'required|date',
+            'addressee' => 'required|string',
+            'description' => 'required|string',
+            'area' => 'required|string',
+        ]);
+
+        $lastConsecutive = Outbound::max('consecutive');
+
+        $data['consecutive'] = ($lastConsecutive ?? 0) + 1;
+
+        $outbound = Outbound::create($data);
+
+        return response()->json([
+            'message' => 'Número de salida',
+            "N°" => $outbound->consecutive,
+        ], 201);
     }
 
     /**
@@ -36,15 +45,7 @@ class OutboundController extends Controller
      */
     public function show(Outbound $outbound)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Outbound $outbound)
-    {
-        //
+        return $outbound;
     }
 
     /**
@@ -52,7 +53,19 @@ class OutboundController extends Controller
      */
     public function update(Request $request, Outbound $outbound)
     {
-        //
+        $data = $request->validate([
+            'num_area' => 'sometimes|integer',
+            'date'=>'sometimes|date',
+            'addreess'=>'sometimes|string',
+            'description'=>'sometimes|string',
+            'area'=>'sometimes|string'
+        ]);
+
+        $outbound->update($data);
+
+        return response()->json([
+            'mensaje' => 'Datos actualizados'
+        ]);
     }
 
     /**
@@ -61,5 +74,17 @@ class OutboundController extends Controller
     public function destroy(Outbound $outbound)
     {
         //
+    }
+
+    public function status(Request $request, Outbound $outbound){
+        $data = $request->validate([
+            'status' => 'sometimes|in:activo,espera,cancelado'
+        ]);
+
+        $outbound->update($data);
+        return response()->json([
+            'mensaje' => 'Estado actualizado',
+            $outbound
+        ]);
     }
 }

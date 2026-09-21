@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use App\Models\Outbound;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OutboundController extends Controller
 {
@@ -11,7 +12,7 @@ class OutboundController extends Controller
      */
     public function index()
     {
-        return response()->json(Outbound::all());
+         return response()->json(Outbound::orderByDesc('consecutive')->get());
     }
 
     /**
@@ -28,11 +29,11 @@ class OutboundController extends Controller
             'area' => 'required|string',
         ]);
 
-        $lastConsecutive = Outbound::max('consecutive');
-
-        $data['consecutive'] = ($lastConsecutive ?? 0) + 1;
-
-        $outbound = Outbound::create($data);
+          $outbound = DB::transaction(function () use ($data) {
+            $last = Outbound::lockForUpdate()->max('consecutive');
+            $data['consecutive'] = ($last ?? 0) + 1;
+            return Outbound::create($data);
+        });
 
         return response()->json([
             'message' => 'Número de salida',
@@ -56,7 +57,7 @@ class OutboundController extends Controller
         $data = $request->validate([
             'num_area' => 'sometimes|integer',
             'date'=>'sometimes|date',
-            'addreess'=>'sometimes|string',
+            'addressee'=>'sometimes|string',
             'description'=>'sometimes|string',
             'area'=>'sometimes|string'
         ]);
@@ -73,7 +74,19 @@ class OutboundController extends Controller
      */
     public function destroy(Outbound $outbound)
     {
-        //
+            $ultimo = (int) Outbound::max('consecutive');
+
+    if ((int) $outbound->consecutive !== $ultimo) {
+        return response()->json([
+            'message' => 'Solo se puede eliminar el último número de salida.'
+        ], 403);
+    }
+
+    $outbound->delete();
+
+    return response()->json([
+        'message' => 'Número de salida eliminado'
+    ]);
     }
 
     public function status(Request $request, Outbound $outbound){
